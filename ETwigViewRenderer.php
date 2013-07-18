@@ -76,16 +76,16 @@ class ETwigViewRenderer extends CApplicationComponent implements IViewRenderer
         /** @var $theme CTheme */
         $theme = $app->getTheme();
 
-        if ($theme === null) {
-            $this->_basePath = $app->getBasePath();
-        } else {
-            $this->_basePath = $theme->getBasePath();
-        }
+        $paths = array();
+        if ($theme !== null)
+            $paths[] = $theme->getBasePath();
+        $paths[] = $app->getBasePath();
+        $this->_basePath = $paths[0];
 
         // Need for extracting basePath from template path
         $this->_basePathLength = strlen($this->_basePath);
 
-        $loader = new Twig_Loader_Filesystem($this->_basePath);
+        $loader = new Twig_Loader_Filesystem($paths);
         $defaultOptions = array(
             'autoescape' => false, // false because other way Twig escapes all HTML in templates
             'auto_reload' => true,
@@ -142,7 +142,12 @@ class ETwigViewRenderer extends CApplicationComponent implements IViewRenderer
         // current controller properties will be accessible as {{ this.property }}
         $data['this'] = $context;
 
-        $sourceFile = substr($sourceFile, $this->_basePathLength);
+        if (strpos($sourceFile,$this->_basePath)===0)
+            $cut = $this->_basePathLength;
+        else
+            $cut = strlen(Yii::app()->getBasePath());
+
+        $sourceFile = substr($sourceFile,$cut);
         $template = $this->_twig->loadTemplate($sourceFile)->render($data);
 
         if ($return) {
